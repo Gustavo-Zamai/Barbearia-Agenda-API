@@ -287,6 +287,7 @@ public class AgendamentoService {
     /**
      * Buscar agendamento por ID (Response)
      */
+    @Transactional(readOnly = true)
     public AgendamentoResponse buscarPorId(Integer id) {
         Agendamento agendamento = buscarAgendamentoPorId(id);
         return mapper.toResponse(agendamento);
@@ -295,6 +296,7 @@ public class AgendamentoService {
     /**
      * Buscar agendamento por ID (Detalhado)
      */
+    @Transactional(readOnly = true)
     public AgendamentoDetalhadoResponse buscarDetalhadoPorId(Integer id) {
         Agendamento agendamento = buscarAgendamentoPorId(id);
         return mapper.toDetalhedResponse(agendamento);
@@ -303,6 +305,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findByClienteOrderByDataHoraDesc(cliente);
@@ -312,6 +315,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um cliente
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorCliente(Integer clienteId) {
         // Verificar se é admin ou o próprio cliente
         Cliente clienteLogado = clienteService.getClienteLogado();
@@ -327,6 +331,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um profissional
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissional(Integer profissionalId) {
         // Verificar se é admin
         if (!clienteService.isAdmin()) {
@@ -341,6 +346,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um profissional em uma data
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissionalData(Integer profissionalId, LocalDate data) {
         Profissional profissional = profissionalService.buscarProfissionalPorId(profissionalId);
         LocalDateTime inicio = data.atStartOfDay();
@@ -355,6 +361,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos futuros do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarFuturosPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findAgendamentosFuturosPorCliente(cliente);
@@ -364,6 +371,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos passados do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPassadosPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findAgendamentosPassadosPorCliente(cliente);
