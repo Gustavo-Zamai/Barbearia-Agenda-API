@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,7 +28,6 @@ import java.util.Map;
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
 @Slf4j
-//@CrossOrigin(origins = "*")
 @Tag(name = "Dashboard", description = "Endpoints para dados do dashboard (apenas admin)")
 @PreAuthorize("hasRole('ADMIN')")
 public class DashboardController {
@@ -49,8 +47,7 @@ public class DashboardController {
     @Operation(summary = "Agendamentos do dia", description = "Retorna os agendamentos do dia")
     @GetMapping("/agendamentos-hoje")
     public ResponseEntity<List<AgendamentoResponse>> getAgendamentosHoje() {
-        // TODO: Implementar método no service
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(agendamentoService.listarAgendamentosDoDia());
     }
 
     @Operation(summary = "Faturamento por período", description = "Retorna o faturamento em um período")
@@ -58,10 +55,9 @@ public class DashboardController {
     public ResponseEntity<Map<String, BigDecimal>> getFaturamento(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
-        
+
         Map<String, BigDecimal> response = new HashMap<>();
-        // TODO: Implementar método no service
-        response.put("total", BigDecimal.ZERO);
+        response.put("total", agendamentoService.calcularFaturamento(inicio, fim));
         return ResponseEntity.ok(response);
     }
 
@@ -87,7 +83,7 @@ public class DashboardController {
         response.put("totalClientes", clienteService.listarAtivos().size());
         response.put("totalProfissionais", profissionalService.listarAtivos().size());
         response.put("totalServicos", servicoService.listarAtivos().size());
-        response.put("totalAgendamentosHoje", 0); // TODO: Implementar
+        response.put("totalAgendamentosHoje", agendamentoService.contarAgendamentosDoDia());
         
         return ResponseEntity.ok(response);
     }

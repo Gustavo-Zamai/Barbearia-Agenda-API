@@ -31,6 +31,10 @@ public class ProfissionalRequest {
     @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
     private String telefone;
 
+    @NotBlank(message = "Senha é obrigatória")
+    @Size(min = 6, message = "Senha deve ter pelo menos 6 caracteres")
+    private String senha;
+
     @Size(max = 500, message = "Especialidades deve ter no máximo 500 caracteres")
     private String especialidades;
 

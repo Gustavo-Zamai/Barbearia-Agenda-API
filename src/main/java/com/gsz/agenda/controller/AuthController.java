@@ -5,7 +5,6 @@ import com.gsz.agenda.dto.request.LoginRequest;
 import com.gsz.agenda.dto.response.LoginResponse;
 import com.gsz.agenda.service.AuthService;
 import com.gsz.agenda.dto.request.RegistroClienteRequest;
-import com.gsz.agenda.dto.request.RegistroProfissionalRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,7 +26,6 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Slf4j
-//@CrossOrigin(origins = "*")
 @Tag(name = "Autenticação", description = "Endpoints para autenticação e gerenciamento de sessão")
 public class AuthController {
 
@@ -90,11 +88,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "Cadastrar profissional", description = "Cria uma nova conta de profissional e retorna token JWT")
-    @PostMapping("/register/profissional")
-    public ResponseEntity<LoginResponse> registrarProfissional(
-            @Valid @RequestBody RegistroProfissionalRequest request) {
-        LoginResponse response = authService.cadastrarProfissional(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    // Cadastro de profissional NÃO fica aqui propositalmente: profissionais
+    // recebem ROLE_ADMIN automaticamente (ver CustomUserDetailsService), então
+    // essa rota não pode ser pública. Use POST /api/profissionais, que já
+    // exige @PreAuthorize("hasRole('ADMIN')") — assim só um admin já logado
+    // pode criar outro profissional/admin.
 }

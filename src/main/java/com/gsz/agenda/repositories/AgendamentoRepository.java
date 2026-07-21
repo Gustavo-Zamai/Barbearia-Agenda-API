@@ -195,6 +195,26 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Intege
     );
 
     /**
+     * Calcular faturamento total (todos os profissionais) em um período
+     */
+    @Query("SELECT COALESCE(SUM(a.precoTotal), 0) FROM Agendamento a " +
+           "WHERE a.status = 'CONCLUIDO' " +
+           "AND a.dataHora BETWEEN :inicio AND :fim")
+    BigDecimal calcularFaturamentoTotal(
+        @Param("inicio") LocalDateTime inicio,
+        @Param("fim") LocalDateTime fim
+    );
+
+    /**
+     * Contar agendamentos do dia (para métricas rápidas)
+     */
+    @Query("SELECT COUNT(a) FROM Agendamento a " +
+           "WHERE DATE(a.dataHora) = CURRENT_DATE " +
+           "AND a.status != 'CANCELADO' " +
+           "AND a.status != 'NAO_COMPARECEU'")
+    Long countAgendamentosDoDia();
+
+    /**
      * Calcular faturamento total por dia
      */
     @Query("SELECT DATE(a.dataHora), SUM(a.precoTotal) " +

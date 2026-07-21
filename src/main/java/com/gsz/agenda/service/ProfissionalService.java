@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class ProfissionalService {
     private final ProfissionalRepository repository;
     private final ProfissionalMapper mapper;
     private final LogAtividadeService logAtividadeService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Criar um novo profissional
@@ -44,6 +46,10 @@ public class ProfissionalService {
 
         // Converter Request -> Entity
         Profissional profissional = mapper.toEntity(request);
+
+        // Definir senha (hash) — não é mapeada automaticamente pois o
+        // campo de origem é "senha" (texto puro) e o destino é "senhaHash"
+        profissional.setSenhaHash(passwordEncoder.encode(request.getSenha()));
 
         // Salvar
         profissional = repository.save(profissional);

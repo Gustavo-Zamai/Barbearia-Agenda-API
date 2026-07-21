@@ -3,7 +3,6 @@ package com.gsz.agenda.service;
 import com.gsz.agenda.dto.request.AlterarSenhaRequest;
 import com.gsz.agenda.dto.request.LoginRequest;
 import com.gsz.agenda.dto.request.RegistroClienteRequest;
-import com.gsz.agenda.dto.request.RegistroProfissionalRequest;
 import com.gsz.agenda.dto.response.LoginResponse;
 import com.gsz.agenda.enums.Genero;
 import com.gsz.agenda.exception.BusinessException;
@@ -96,55 +95,10 @@ public class AuthService {
                 .build();
     }
 
-    /**
-     * Cadastrar novo profissional
-     */
-    @Transactional
-    public LoginResponse cadastrarProfissional(RegistroProfissionalRequest request) {
-        log.info("Cadastro de novo profissional: {}", request.getEmail());
-
-        if (!request.getSenha().equals(request.getConfirmacaoSenha())) {
-            throw new BusinessException("Senha e confirmação não coincidem");
-        }
-
-        if (profissionalRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Já existe um profissional cadastrado com este email");
-        }
-
-        Profissional profissional = new Profissional();
-        profissional.setNome(request.getNome());
-        profissional.setEmail(request.getEmail());
-        profissional.setTelefone(request.getTelefone());
-        profissional.setSenhaHash(passwordEncoder.encode(request.getSenha()));
-        profissional.setEspecialidades(request.getEspecialidades());
-        profissional
-                .setHorarioInicio(request.getHorarioInicio() != null ? request.getHorarioInicio() : LocalTime.of(8, 0));
-        profissional.setHorarioFim(request.getHorarioFim() != null ? request.getHorarioFim() : LocalTime.of(20, 0));
-        profissional.setAtivo(true);
-
-        profissional = profissionalRepository.save(profissional);
-
-        logAtividadeService.salvarLog(
-                profissional.getEmail(), "CADASTRO_PROFISSIONAL", "profissionais", profissional.getId(), null, null,
-                null, null);
-
-        log.info("Profissional cadastrado com sucesso: {}", profissional.getEmail());
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                profissional.getEmail(), request.getSenha());
-        Authentication authenticated = authenticationManager.authenticate(authentication);
-        String token = tokenProvider.gerarToken(authenticated);
-
-        return LoginResponse.builder()
-                .token(token)
-                .tipo("Bearer")
-                .expiracao(tokenProvider.getExpiracaoToken())
-                .usuarioId(profissional.getId())
-                .nome(profissional.getNome())
-                .email(profissional.getEmail())
-                .role("ADMIN")
-                .build();
-    }
+    // cadastrarProfissional() foi removido: era uma rota pública que dava
+    // ROLE_ADMIN a qualquer pessoa. Criação de profissional agora só é
+    // possível via ProfissionalService.criar(), chamado por um admin
+    // autenticado (POST /api/profissionais).
 
     /**
      * Autenticar usuário e gerar token JWT

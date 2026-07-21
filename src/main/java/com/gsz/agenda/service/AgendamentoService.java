@@ -24,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -287,6 +288,7 @@ public class AgendamentoService {
     /**
      * Buscar agendamento por ID (Response)
      */
+    @Transactional(readOnly = true)
     public AgendamentoResponse buscarPorId(Integer id) {
         Agendamento agendamento = buscarAgendamentoPorId(id);
         return mapper.toResponse(agendamento);
@@ -295,6 +297,7 @@ public class AgendamentoService {
     /**
      * Buscar agendamento por ID (Detalhado)
      */
+    @Transactional(readOnly = true)
     public AgendamentoDetalhadoResponse buscarDetalhadoPorId(Integer id) {
         Agendamento agendamento = buscarAgendamentoPorId(id);
         return mapper.toDetalhedResponse(agendamento);
@@ -303,6 +306,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findByClienteOrderByDataHoraDesc(cliente);
@@ -312,6 +316,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um cliente
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorCliente(Integer clienteId) {
         // Verificar se é admin ou o próprio cliente
         Cliente clienteLogado = clienteService.getClienteLogado();
@@ -327,6 +332,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um profissional
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissional(Integer profissionalId) {
         // Verificar se é admin
         if (!clienteService.isAdmin()) {
@@ -341,6 +347,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos de um profissional em uma data
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPorProfissionalData(Integer profissionalId, LocalDate data) {
         Profissional profissional = profissionalService.buscarProfissionalPorId(profissionalId);
         LocalDateTime inicio = data.atStartOfDay();
@@ -355,6 +362,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos futuros do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarFuturosPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findAgendamentosFuturosPorCliente(cliente);
@@ -364,6 +372,7 @@ public class AgendamentoService {
     /**
      * Listar agendamentos passados do cliente logado
      */
+    @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarPassadosPorClienteLogado() {
         Cliente cliente = clienteService.getClienteLogado();
         List<Agendamento> agendamentos = repository.findAgendamentosPassadosPorCliente(cliente);
@@ -456,5 +465,35 @@ public class AgendamentoService {
         if (conflito) {
             throw new BusinessException("Horário indisponível. Escolha outro horário");
         }
+    }
+
+    // ====== MÉTODOS PARA O DASHBOARD (ADMIN) ======
+
+    /**
+     * Listar agendamentos de hoje (todos os profissionais) — usado pelo painel admin
+     */
+    @Transactional(readOnly = true)
+    public List<AgendamentoResponse> listarAgendamentosDoDia() {
+        List<Agendamento> agendamentos = repository.findAgendamentosDoDia();
+        return agendamentos.stream().map(mapper::toResponse).toList();
+    }
+
+    /**
+     * Contar agendamentos de hoje (todos os profissionais)
+     */
+    @Transactional(readOnly = true)
+    public Long contarAgendamentosDoDia() {
+        return repository.countAgendamentosDoDia();
+    }
+
+    /**
+     * Calcular faturamento total (agendamentos concluídos) em um período
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal calcularFaturamento(LocalDate inicio, LocalDate fim) {
+        LocalDateTime inicioDia = inicio.atStartOfDay();
+        LocalDateTime fimDia = fim.atTime(LocalTime.MAX);
+        BigDecimal total = repository.calcularFaturamentoTotal(inicioDia, fimDia);
+        return total != null ? total : BigDecimal.ZERO;
     }
 }
