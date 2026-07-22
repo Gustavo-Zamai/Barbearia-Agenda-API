@@ -26,6 +26,7 @@ public class PagamentoService {
     private final PagamentoRepository repository;
     private final PagamentoMapper mapper;
     private final AgendamentoService agendamentoService;
+    private final ClienteService clienteService;
     private final LogAtividadeService logAtividadeService;
 
     /**
@@ -43,6 +44,14 @@ public class PagamentoService {
         // Verificar se já existe pagamento para este agendamento
         if (repository.findByAgendamentoId(request.getAgendamentoId()).isPresent()) {
             throw new BusinessException("Este agendamento já possui um pagamento registrado");
+        }
+
+        // Cliente só pode registrar pagamento do próprio agendamento (admin pode de qualquer um)
+        if (!clienteService.isAdmin()) {
+            Integer clienteLogadoId = clienteService.getClienteLogadoId();
+            if (!clienteLogadoId.equals(agendamento.getCliente().getId())) {
+                throw new BusinessException("Você não tem permissão para registrar pagamento deste agendamento");
+            }
         }
 
         // Validar se o valor do pagamento é igual ao valor do agendamento
@@ -143,25 +152,30 @@ public class PagamentoService {
     /**
      * Buscar pagamento por ID (Response)
      */
+    @Transactional(readOnly = true)
     public PagamentoResponse buscarPorId(Integer id) {
         Pagamento pagamento = buscarPagamentoPorId(id);
+        verificarPermissaoAcesso(pagamento);
         return mapper.toResponse(pagamento);
     }
 
     /**
      * Buscar pagamento por agendamento
      */
+    @Transactional(readOnly = true)
     public PagamentoResponse buscarPorAgendamento(Integer agendamentoId) {
         Pagamento pagamento = repository.findByAgendamentoId(agendamentoId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                     "Pagamento não encontrado para agendamento ID: " + agendamentoId
                 ));
+        verificarPermissaoAcesso(pagamento);
         return mapper.toResponse(pagamento);
     }
 
     /**
      * Listar pagamentos por status
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPorStatus(StatusPagamento status) {
         List<Pagamento> pagamentos = repository.findByStatusOrderByCreatedAtDesc(status);
         return pagamentos.stream().map(mapper::toResponse).toList();
@@ -170,6 +184,7 @@ public class PagamentoService {
     /**
      * Listar pagamentos por método
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPorMetodo(String metodo) {
         List<Pagamento> pagamentos = repository.findByMetodoOrderByCreatedAtDesc(
             com.gsz.agenda.enums.MetodoPagamento.valueOf(metodo)
@@ -180,6 +195,7 @@ public class PagamentoService {
     /**
      * Listar pagamentos por período
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPorPeriodo(LocalDateTime inicio, LocalDateTime fim) {
         List<Pagamento> pagamentos = repository.findByCreatedAtBetweenOrderByCreatedAtDesc(inicio, fim);
         return pagamentos.stream().map(mapper::toResponse).toList();
@@ -188,6 +204,7 @@ public class PagamentoService {
     /**
      * Calcular total de pagamentos no período
      */
+    @Transactional(readOnly = true)
     public BigDecimal calcularTotalNoPeriodo(LocalDateTime inicio, LocalDateTime fim) {
         BigDecimal total = repository.calcularTotalPagamentosNoPeriodo(inicio, fim);
         return total != null ? total : BigDecimal.ZERO;
@@ -196,10 +213,26 @@ public class PagamentoService {
     /**
      * Listar pagamentos pendentes
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPendentes() {
         List<Pagamento> pagamentos = repository.findPagamentosPendentes(
             LocalDateTime.now().minusDays(7)
         );
         return pagamentos.stream().map(mapper::toResponse).toList();
+    }
+
+    /**
+     * Garante que o cliente logado só acesse pagamentos dos próprios
+     * agendamentos — admin (profissional) acessa qualquer um.
+     */
+    private void verificarPermissaoAcesso(Pagamento pagamento) {
+        if (clienteService.isAdmin()) {
+            return;
+        }
+        Integer clienteLogadoId = clienteService.getClienteLogadoId();
+        Integer donoAgendamentoId = pagamento.getAgendamento().getCliente().getId();
+        if (!clienteLogadoId.equals(donoAgendamentoId)) {
+            throw new BusinessException("Você não tem permissão para acessar este pagamento");
+        }
     }
 }

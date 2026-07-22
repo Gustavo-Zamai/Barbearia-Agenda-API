@@ -116,17 +116,54 @@ public class AuthService {
             // 2. Colocar autenticação no contexto
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 3. Buscar cliente
+            // 3. Verificar se é um profissional (admin) ou um cliente,
+            // com base nas authorities retornadas pela autenticação.
+            // Sem essa checagem, o código sempre tentava buscar um Cliente,
+            // e login de profissional falhava mesmo com senha correta.
+            boolean isProfissional = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+            String token = tokenProvider.gerarToken(authentication);
+            Long expiracao = tokenProvider.getExpiracaoToken();
+
+            if (isProfissional) {
+                Profissional profissional = profissionalRepository.findByEmail(request.getEmail())
+                        .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
+
+                if (!profissional.getAtivo()) {
+                    throw new BusinessException("Usuário inativo. Entre em contato com o administrador");
+                }
+
+                logAtividadeService.salvarLog(
+                        profissional.getEmail(),
+                        "LOGIN_SUCESSO",
+                        "auth",
+                        profissional.getId(),
+                        null,
+                        null,
+                        null,
+                        null);
+
+                log.info("Login realizado com sucesso para: {}", request.getEmail());
+
+                return LoginResponse.builder()
+                        .token(token)
+                        .tipo("Bearer")
+                        .expiracao(expiracao)
+                        .usuarioId(profissional.getId())
+                        .nome(profissional.getNome())
+                        .email(profissional.getEmail())
+                        .role("ADMIN")
+                        .build();
+            }
+
+            // 4. Buscar cliente
             Cliente cliente = clienteService.buscarClientePorEmail(request.getEmail());
 
-            // 4. Verificar se cliente está ativo
+            // 5. Verificar se cliente está ativo
             if (!cliente.getAtivo()) {
                 throw new BusinessException("Usuário inativo. Entre em contato com o administrador");
             }
-
-            // 5. Gerar token JWT
-            String token = tokenProvider.gerarToken(authentication);
-            Long expiracao = tokenProvider.getExpiracaoToken();
 
             // 6. Registrar log
             logAtividadeService.salvarLog(
